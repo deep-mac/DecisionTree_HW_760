@@ -4,13 +4,13 @@ import math
 from numpy.polynomial.polynomial import Polynomial
 
 x = np.random.uniform(-math.pi, math.pi, 100)
-e = np.random.uniform(0, 0.0, 100)
+e = np.random.normal(0, 0.05, 100)
 print (x)
 
 y = np.sin(x)
 print (y)
 
-p = lagrange(x+e, y)
+p = lagrange(x[:10]+e[:10], y)
 
 print (p)
 
