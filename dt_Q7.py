@@ -1,4 +1,6 @@
 import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
 import sys
 import math
 
@@ -161,18 +163,14 @@ def MakeTree (df):
         node.feature = 'L'
         node.left = None
         node.right = None
-        print("Child node")
+        #print("Child node")
     else:
-        print("Subtree node")
+        #print("Subtree node")
         feature,value = FindBestSplit(df, c_split)
         df_t = df.sort_values(by=str(feature))
-        #print ("feature = ", feature)
-        #print ("df_t = \n", df_t)
         df_t0 = df_t[df_t[str(feature)] >= value]
-        #print ("df_t0 = \n", df_t0)
         node0 = MakeTree(df_t0)
         df_t1 = df_t[df_t[str(feature)] < value]
-        #print ("df_t1 = \n", df_t1)
         node1 = MakeTree(df_t1)
         node.left = node0
         node.right = node1
@@ -196,22 +194,33 @@ def predict (root, value):
             next_root = None
         curr_root = next_root
 
+def totalNodes(root):
+    if(root == None):
+        return 0
+ 
+    l = totalNodes(root.left)
+    r = totalNodes(root.right)
+ 
+    return 1 + l + r
+
 num_features = 2
 df = pd.read_csv(sys.argv[1], sep=" ", header=None)
 df.columns = ["0", "1", "label"]
 df_train = df.sample(n=8192)
 df_test = df.drop(df_train.index)
-df_train = df_train.sample(n=2048)
-
-print (df_train)
-print (df_test)
-
-DTree = MakeTree(df_train)
-print2D(DTree)
-
+test_samples = df_test.shape[0]
 x = df_test["0"].values.tolist()
 y = df_test["1"].values.tolist()
 labels = df_test["label"].values.tolist()
+
+df_train0 = df_train.sample(n=32)
+df_train_rem = df_train.drop(df_train0.index)
+
+print(df_train0.shape[0])
+DTree = MakeTree(df_train0)
+print("Total nodes = ", totalNodes(DTree))
+#print2D(DTree)
+
 err = 0
 for i in range (df_test.shape[0]):
     tmp = []
@@ -221,5 +230,189 @@ for i in range (df_test.shape[0]):
     if (labels[i] != yp):
         #print ("ERROR in prediction")
         err = err+1
+print ("Err = ", err/test_samples)
 
-print ("Err = ", err)
+x_plot = np.random.uniform(-1.5, 1.5, 2000)
+y_plot = np.random.uniform(-1.5, 1.5, 2000)
+pred = []
+for i in range (len(x_plot)):
+    tmp = []
+    tmp.append(x_plot[i])
+    tmp.append(y_plot[i])
+    yp = predict(DTree, tmp)
+    pred.append(yp)
+
+df_plot = pd.DataFrame(list(zip(x_plot, y_plot, pred)),
+               columns =['0', '1', 'label'])
+lab0 = df_plot[df_plot["label"] == 0]
+x0 = lab0["0"].values.tolist()
+y0 = lab0["1"].values.tolist()
+lab1 = df_plot[df_plot["label"] == 1]
+x1 = lab1["0"].values.tolist()
+y1 = lab1["1"].values.tolist()
+#fig,ax = plt.subplots()
+plt.scatter(x0, y0, c = "blue")
+plt.scatter(x1, y1, c = "red")
+plt.savefig('q7_32_boundary.pdf', format="pdf")
+
+df_train1 = df_train_rem.sample(n=96)
+df_train_rem = df_train_rem.drop(df_train1.index)
+df_merge = [df_train0, df_train1]
+df_train1 = pd.concat(df_merge)
+
+print(df_train1.shape[0])
+DTree = MakeTree(df_train1)
+print("Total nodes = ", totalNodes(DTree))
+#print2D(DTree)
+
+err = 0
+for i in range (df_test.shape[0]):
+    tmp = []
+    tmp.append(x[i])
+    tmp.append(y[i])
+    yp = predict(DTree, tmp)
+    if (labels[i] != yp):
+        #print ("ERROR in prediction")
+        err = err+1
+print ("Err = ", err/test_samples)
+pred = []
+for i in range (len(x_plot)):
+    tmp = []
+    tmp.append(x_plot[i])
+    tmp.append(y_plot[i])
+    yp = predict(DTree, tmp)
+    pred.append(yp)
+
+df_plot = pd.DataFrame(list(zip(x_plot, y_plot, pred)),
+               columns =['0', '1', 'label'])
+lab0 = df_plot[df_plot["label"] == 0]
+x0 = lab0["0"].values.tolist()
+y0 = lab0["1"].values.tolist()
+lab1 = df_plot[df_plot["label"] == 1]
+x1 = lab1["0"].values.tolist()
+y1 = lab1["1"].values.tolist()
+#fig,ax = plt.subplots()
+plt.scatter(x0, y0, c = "blue")
+plt.scatter(x1, y1, c = "red")
+plt.savefig('q7_128_boundary.pdf', format="pdf")
+
+df_train2 = df_train_rem.sample(n=384)
+df_train_rem = df_train_rem.drop(df_train2.index)
+df_merge = [df_train1, df_train2]
+df_train2 = pd.concat(df_merge)
+
+print(df_train2.shape[0])
+DTree = MakeTree(df_train2)
+print("Total nodes = ", totalNodes(DTree))
+#print2D(DTree)
+
+err = 0
+for i in range (df_test.shape[0]):
+    tmp = []
+    tmp.append(x[i])
+    tmp.append(y[i])
+    yp = predict(DTree, tmp)
+    if (labels[i] != yp):
+        #print ("ERROR in prediction")
+        err = err+1
+print ("Err = ", err/test_samples)
+pred = []
+for i in range (len(x_plot)):
+    tmp = []
+    tmp.append(x_plot[i])
+    tmp.append(y_plot[i])
+    yp = predict(DTree, tmp)
+    pred.append(yp)
+
+df_plot = pd.DataFrame(list(zip(x_plot, y_plot, pred)),
+               columns =['0', '1', 'label'])
+lab0 = df_plot[df_plot["label"] == 0]
+x0 = lab0["0"].values.tolist()
+y0 = lab0["1"].values.tolist()
+lab1 = df_plot[df_plot["label"] == 1]
+x1 = lab1["0"].values.tolist()
+y1 = lab1["1"].values.tolist()
+#fig,ax = plt.subplots()
+plt.scatter(x0, y0, c = "blue")
+plt.scatter(x1, y1, c = "red")
+plt.savefig('q7_512_boundary.pdf', format="pdf")
+
+df_train3 = df_train_rem.sample(n=1536)
+df_train_rem = df_train_rem.drop(df_train3.index)
+df_merge = [df_train2, df_train3]
+df_train3 = pd.concat(df_merge)
+
+print(df_train3.shape[0])
+DTree = MakeTree(df_train3)
+print("Total nodes = ", totalNodes(DTree))
+#print2D(DTree)
+
+err = 0
+for i in range (df_test.shape[0]):
+    tmp = []
+    tmp.append(x[i])
+    tmp.append(y[i])
+    yp = predict(DTree, tmp)
+    if (labels[i] != yp):
+        #print ("ERROR in prediction")
+        err = err+1
+print ("Err = ", err/test_samples)
+pred = []
+for i in range (len(x_plot)):
+    tmp = []
+    tmp.append(x_plot[i])
+    tmp.append(y_plot[i])
+    yp = predict(DTree, tmp)
+    pred.append(yp)
+
+df_plot = pd.DataFrame(list(zip(x_plot, y_plot, pred)),
+               columns =['0', '1', 'label'])
+lab0 = df_plot[df_plot["label"] == 0]
+x0 = lab0["0"].values.tolist()
+y0 = lab0["1"].values.tolist()
+lab1 = df_plot[df_plot["label"] == 1]
+x1 = lab1["0"].values.tolist()
+y1 = lab1["1"].values.tolist()
+#fig,ax = plt.subplots()
+plt.scatter(x0, y0, c = "blue")
+plt.scatter(x1, y1, c = "red")
+plt.savefig('q7_2048_boundary.pdf', format="pdf")
+
+df_merge = [df_train3, df_train_rem]
+df_train4 = pd.concat(df_merge)
+
+print(df_train4.shape[0])
+DTree = MakeTree(df_train4)
+print("Total nodes = ", totalNodes(DTree))
+#print2D(DTree)
+
+err = 0
+for i in range (df_test.shape[0]):
+    tmp = []
+    tmp.append(x[i])
+    tmp.append(y[i])
+    yp = predict(DTree, tmp)
+    if (labels[i] != yp):
+        #print ("ERROR in prediction")
+        err = err+1
+print ("Err = ", err/test_samples)
+pred = []
+for i in range (len(x_plot)):
+    tmp = []
+    tmp.append(x_plot[i])
+    tmp.append(y_plot[i])
+    yp = predict(DTree, tmp)
+    pred.append(yp)
+
+df_plot = pd.DataFrame(list(zip(x_plot, y_plot, pred)),
+               columns =['0', '1', 'label'])
+lab0 = df_plot[df_plot["label"] == 0]
+x0 = lab0["0"].values.tolist()
+y0 = lab0["1"].values.tolist()
+lab1 = df_plot[df_plot["label"] == 1]
+x1 = lab1["0"].values.tolist()
+y1 = lab1["1"].values.tolist()
+#fig,ax = plt.subplots()
+plt.scatter(x0, y0, c = "blue")
+plt.scatter(x1, y1, c = "red")
+plt.savefig('q7_8192_boundary.pdf', format="pdf")

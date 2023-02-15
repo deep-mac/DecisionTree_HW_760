@@ -1,6 +1,8 @@
 import pandas as pd
 import sys
 import math
+import matplotlib.pyplot as plt
+import numpy as np
 
 DEBUG = False
 COUNT = [8]
@@ -25,7 +27,7 @@ def print2DUtil(root, space):
  
     # Print current node after space
     # count
-    print()
+    #print()
     for i in range(COUNT[0], space):
         print(end=" ")
     print("-> ", root.feature, root.value)
@@ -74,14 +76,10 @@ def FindBestSplit(df, c_split):
         for sp in c_split[i]:
             value = df_t.iloc[sp, i]
             df_left = df_t[df_t[str(i)] >= value]
-            if DEBUG:
-                print("df_left = \n", df_left)
             df_lcount = df_left.shape[0];
             HyLeft = getEntropy(df_left[df_left.label == 0].shape[0], df_left[df_left.label == 1].shape[0])
             df_right = df_t[df_t[str(i)] <  value]
             df_rcount = df_right.shape[0];
-            if DEBUG:
-                print("df_right = \n", df_right)
             if (df_lcount == 0 or df_rcount == 0):
                 continue
             HyRight = getEntropy(df_right[df_right.label == 0].shape[0], df_right[df_right.label == 1].shape[0])
@@ -166,13 +164,9 @@ def MakeTree (df):
         print("Subtree node")
         feature,value = FindBestSplit(df, c_split)
         df_t = df.sort_values(by=str(feature))
-        #print ("feature = ", feature)
-        #print ("df_t = \n", df_t)
         df_t0 = df_t[df_t[str(feature)] >= value]
-        #print ("df_t0 = \n", df_t0)
         node0 = MakeTree(df_t0)
         df_t1 = df_t[df_t[str(feature)] < value]
-        #print ("df_t1 = \n", df_t1)
         node1 = MakeTree(df_t1)
         node.left = node0
         node.right = node1
@@ -196,13 +190,22 @@ def predict (root, value):
             next_root = None
         curr_root = next_root
 
+def totalNodes(root):
+    if(root == None):
+        return 0
+ 
+    l = totalNodes(root.left)
+    r = totalNodes(root.right)
+ 
+    return 1 + l + r
+
 num_features = 2
 df = pd.read_csv(sys.argv[1], sep=" ", header=None)
 df.columns = ["0", "1", "label"]
-print (df)
 
 DTree = MakeTree(df)
 print2D(DTree)
+print("Total nodes = ", totalNodes(DTree))
 
 x = df["0"].values.tolist()
 y = df["1"].values.tolist()
@@ -214,3 +217,42 @@ for i in range (df.shape[0]):
     yp = predict(DTree, tmp)
     if (labels[i] != yp):
         print ("ERROR in prediction")
+
+#Plot
+#data scatter plot
+lab0 = df[df["label"] == 0]
+x0 = lab0["0"].values.tolist()
+y0 = lab0["1"].values.tolist()
+lab1 = df[df["label"] == 1]
+x1 = lab1["0"].values.tolist()
+y1 = lab1["1"].values.tolist()
+#fig,ax = plt.subplots()
+plt.scatter(x0, y0, c = "blue")
+plt.scatter(x1, y1, c = "red")
+plt.savefig('q6_'+sys.argv[1]+'.pdf', format="pdf")
+
+
+#decision boundary scratter plot
+x = np.random.uniform(0.0, 1.0, 10000)
+y = np.random.uniform(0.0, 1.0, 10000)
+pred = []
+for i in range (len(x)):
+    tmp = []
+    tmp.append(x[i])
+    tmp.append(y[i])
+    yp = predict(DTree, tmp)
+    pred.append(yp)
+
+df = pd.DataFrame(list(zip(x, y, pred)),
+               columns =['0', '1', 'label'])
+lab0 = df[df["label"] == 0]
+x0 = lab0["0"].values.tolist()
+y0 = lab0["1"].values.tolist()
+lab1 = df[df["label"] == 1]
+x1 = lab1["0"].values.tolist()
+y1 = lab1["1"].values.tolist()
+#fig,ax = plt.subplots()
+plt.scatter(x0, y0, c = "blue")
+plt.scatter(x1, y1, c = "red")
+plt.savefig('q6_boundary_'+sys.argv[1]+'.pdf', format="pdf")
+
